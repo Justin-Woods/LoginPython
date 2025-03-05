@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ConfigurationPolicy version="3.7.21.0">
+  <Feature Name="Color">
+    <Model Name="Xerox*">
+      <Setting Name="Monochrome" Behavior="Default" />
+    </Model>
+  </Feature>
+  <Feature Name="SecurePrintOnly">
+    <Model Name="*AltaLink B80*">
+      <Setting Name="Enabled" />
+    </Model>
+	<Model Name="*AltaLink B81*">
+      <Setting Name="Enabled" />
+    </Model>
+  </Feature>
+  <Feature Name="ReadCommunityName" />
+  <Feature Name="WriteCommunityName" />
+  <Feature Name="2-SidedPrinting" />
+  <Feature Name="ImageCompression" />
+  <Feature Name="JobType" />
+  <Feature Name="DeviceCommunication" />
+  <Feature Name="JobIdentification" />
+  <Feature Name="ImagesPerPage" />
+  <Feature Name="Staple" />
+  <Feature Name="DraftMode" />
+  <Feature Name="NormalPrintJobType" />
+  <Feature Name="SecurePrintJobType" />
+  <Feature Name="DelayedPrintJobType" />
+  <Feature Name="SaveJobType" />
+  <Feature Name="FaxJobType" />
+  <Feature Name="PersonalPrintJobType" />
+  <Feature Name="ProofPrintJobType" />
+  <Feature Name="SavedJobType" />
+  <Feature Name="PrintWithJobType" />
+  <Feature Name="HoldJobType" />
+  <Feature Name="CreateBackgroundFormJobType" />
+  <Feature Name="HideJobName" />
+  <Feature Name="LDAPPrinting" />
+  <Feature Name="LDAPPrintingAuthentication" />
+  <Feature Name="LDAPPrintingPrompt" />
+  <Feature Name="LDAPPrintingExpiration" />
+  <Feature Name="LDAPPrimaryHost" />
+  <Feature Name="LDAPPrimaryPort" />
+  <Feature Name="LDAPSecondaryHost" />
+  <Feature Name="LDAPSecondaryPort" />
+  <Feature Name="LDAPRoot" />
+  <Feature Name="LDAPSearch" />
+  <Feature Name="LDAPReturn" />
+  <Feature Name="SavedSettings" />
+  <Feature Name="CloudPrinting" />
+  <Feature Name="CommonLoginServicesURL" />
+  <Feature Name="CompanyCode" />
+  <Feature Name="CloudTimeout" />
+  <Feature Name="BWSync" />
+  <Feature Name="TrueTypeFont" />
+  <Feature Name="PullPrintPaperTrays" />
+  <Feature Name="PullPrintStapler" />
+  <Feature Name="PullPrintHolePunch" />
+  <Feature Name="PullPrintBooklet" />
+  <Feature Name="PullPrintProductivityPack" />
+  <Feature Name="PullPrintEnvelopeMedia" />
+  <Feature Name="PrintQuality" />
+  <Feature Name="IntelligentRotationPrintingSetting" />
+  <Feature Name="SubsequentRotationSettings" />
+  <Feature Name="PaperSizeSubsequentRotationSetting" />
+  <Feature Name="OrientationSubsequentRotationSetting" />
+  <Feature Name="ModelOrder">
+    <Model Name="*AltaLink B80*">
+      <Setting Name="" />
+    </Model>
+	<Model Name="*AltaLink B81*">
+      <Setting Name="" />
+    </Model>
+    <Model Name="*VersaLink B400">
+      <Setting Name="" />
+    </Model>
+    <Model Name="*VersaLink C400">
+      <Setting Name="" />
+    </Model>
+    <Model Name="Xerox*">
+      <Setting Name="" />
+    </Model>
+  </Feature>
+</ConfigurationPolicy>
