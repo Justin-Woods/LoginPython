@@ -65,6 +65,20 @@ loginAppPath = "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & 
 ' Run login App
 If FSO.FileExists(loginAppPath) Then
     Shell.Run loginAppPath, 1, False
+Else
+    Dim gitHubDownloadPath
+    gitHubDownloadPath = "https://github.com/YourRepo/LoginPython/archive/refs/heads/main.zip"
+    Shell.Run "powershell -command ""Invoke-WebRequest -Uri " & Quotes(gitHubDownloadPath) & " -OutFile " & Quotes("C:\CCRCE\Login.zip") & """", 1, True
+    If FSO.FileExists("C:\CCRCE\Login.zip") Then
+        Shell.Run "powershell -command ""Expand-Archive -Path " & Quotes("C:\CCRCE\Login.zip") & " -DestinationPath " & Quotes("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login") & """", 1, True
+        If FSO.FileExists("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Login.py") Then
+            Shell.Run "python " & Quotes("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Login.py"), 1, False
+        Else
+            LogMessage "Error: Login.py not found after extraction."
+        End If
+    Else
+        LogMessage "Error: Unable to download Login folder from GitHub."
+    End If
 End If
 
 strReleaseID = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DisplayVersion"
