@@ -23,7 +23,9 @@ Set FSO = CreateObject("Scripting.FileSystemObject")
 Set oEnv = Shell.Environment("PROCESS")
 oEnv("SEE_MASK_NOZONECHECKS") = 1
 ErrCheck
-
+If FSO.FileExists(LogsFolderPath & "\log.txt") Then
+    FSO.DeleteFile(LogsFolderPath & "\log.txt")
+End If
 ' Drive Mapping
 Computername = Shell.ExpandEnvironmentStrings("%COMPUTERNAME%")
 dim Namesplit
@@ -66,13 +68,33 @@ loginAppPath = "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & 
 If FSO.FileExists(loginAppPath) Then
     Shell.Run loginAppPath, 1, False
 Else
-    Dim gitHubDownloadPath
-    gitHubDownloadPath = "https://github.com/YourRepo/LoginPython/archive/refs/heads/main.zip"
-    Shell.Run "powershell -command ""Invoke-WebRequest -Uri " & Quotes(gitHubDownloadPath) & " -OutFile " & Quotes("C:\CCRCE\Login.zip") & """", 1, True
-    If FSO.FileExists("C:\CCRCE\Login.zip") Then
-        Shell.Run "powershell -command ""Expand-Archive -Path " & Quotes("C:\CCRCE\Login.zip") & " -DestinationPath " & Quotes("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login") & """", 1, True
-        If FSO.FileExists("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Login.py") Then
-            Shell.Run "python " & Quotes("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Login.py"), 1, False
+    Dim gitHubDownloadPath, tempFolderPath, extractedFolderPath
+    gitHubDownloadPath = "https://github.com/Justin-Woods/LoginPython/archive/refs/heads/main.zip"
+    tempFolderPath = "C:\CCRCE"
+    extractedFolderPath = FSO.GetParentFolderName(WScript.ScriptFullName) & "\Login"
+    LogMessage "Extracted folder path: " & extractedFolderPath
+    ' Create temp folder if it doesn't exist
+    If Not FSO.FolderExists(tempFolderPath) Then
+        FSO.CreateFolder(tempFolderPath)
+    End If
+    Shell.Run "powershell -command ""Invoke-WebRequest -Uri " & Quotes(gitHubDownloadPath) & " -OutFile " & Quotes(tempFolderPath & "\Login.zip") & """", 1, True
+    If FSO.FileExists(tempFolderPath & "\Login.zip") Then
+        Shell.Run "powershell -command ""Expand-Archive -Path " & Quotes(tempFolderPath & "\Login.zip") & " -DestinationPath " & Quotes(tempFolderPath) & """", 1, True
+        FSO.DeleteFile(tempFolderPath & "\Login.zip")
+        ' Rename extracted folder to "Login"
+        If FSO.FolderExists(tempFolderPath & "\LoginPython-main") Then
+            If FSO.FileExists(tempFolderPath & "\LoginPython-main\Login.vbs") Then FSO.DeleteFile(tempFolderPath & "\LoginPython-main\Login.vbs")
+            If FSO.FolderExists("C:\CCRCE\LoginPython-main\Audit\Databases") Then
+                For Each objFile In FSO.GetFolder("C:\CCRCE\LoginPython-main\Audit\Databases").Files
+                    objFile.Delete True
+                Next
+            End If
+            FSO.CopyFolder tempFolderPath & "\LoginPython-main", extractedFolderPath
+            FSO.DeleteFolder tempFolderPath & "\LoginPython-main"
+            LogMessage tempFolderPath & "\LoginPython-main " & extractedFolderPath
+        End If
+        If FSO.FileExists(extractedFolderPath & "\Login.py") Then
+            Shell.Run "python " & Quotes(extractedFolderPath & "\Login.py"), 1, False
         Else
             LogMessage "Error: Login.py not found after extraction."
         End If
@@ -210,7 +232,12 @@ End Sub
 
 Sub LogMessage(strMessage)
     ' Logs a message with the current timestamp to the log file
+    Dim objLogFile, logFilePath
+    logFilePath = LogsFolderPath & "\log.txt"
+    Set objLogFile = FSO.OpenTextFile(logFilePath, ForAppending, True)
     objLogFile.WriteLine Now & " - " & strMessage
+    objLogFile.Close
+    Set objLogFile = Nothing
 End Sub
 
 Sub ErrCheck()

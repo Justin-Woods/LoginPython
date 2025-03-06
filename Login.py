@@ -6,9 +6,7 @@ import socket
 import configparser
 import subprocess
 import ctypes
-import shutil
 import sys
-import time
 import webbrowser
 sys.stdout.write("Loading please wait...\n")
 
@@ -265,7 +263,7 @@ def run_admin_audit():
         if not db_directory:
             messagebox.showerror("Error", "Database directory is not set.")
             return
-        subprocess.run(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", admin_audit_script_path], check=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        subprocess.run(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", admin_audit_script_path], check=True, creationflags=subprocess.CREATE_NO_WINDOW, shell=False)
         display_admin_table()
     except Exception as e:
         messagebox.showerror("Execution Error", str(e))

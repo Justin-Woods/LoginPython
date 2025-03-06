@@ -24,12 +24,22 @@ if (!(Test-Path $sqlitePath)) {
 
 # Ensure ImportExcel module is available
 if (!(Get-Module -ListAvailable -Name ImportExcel)) {
-    Write-Host "ERROR: ImportExcel module is missing. Install as Admin using:"
-    Write-Host "powershell.exe -executionpolicy bypass Import-Module PowerShellGet"
-    Write-Host "powershell.exe -executionpolicy bypass Install-Module -Name ImportExcel -Force"
-    Read-Host -Prompt "Press any key to continue"
-    exit 1
+    Write-Host "ImportExcel module is missing. Attempting to install..."
+
+    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Host "Script needs to be run as Administrator to install the ImportExcel module."
+        Start-Process powershell.exe "-Command Start-Process powershell.exe -ArgumentList 'Install-Module -Name ImportExcel -Force' -Verb RunAs" -Wait
+        Write-Host "Re-running the script..."
+        Start-Process powershell.exe "-File `"$($MyInvocation.MyCommand.Path)`" -ArgumentList @('$outputExcel')" -Wait
+        exit
+    } else {
+        Install-Module -Name ImportExcel -Force
+    }
 }
+
+Import-Module ImportExcel
 
 # Function to create the main database if it doesn't exist
 function Initialize-Database {
