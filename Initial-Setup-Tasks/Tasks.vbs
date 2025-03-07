@@ -24,9 +24,7 @@ BackupXadmin = "\\ad.ccrsb.ca\xadmin-NRHS"
 
 ' Ensure the log folder exists and is hidden
 strLogFile = "C:\CCRCE\Logs\Tasks.log"
-If Not objFSO.FolderExists("C:\CCRCE") Then
-	objFSO.CreateFolder("C:\CCRCE")
-End If
+If Not objFSO.FolderExists("C:\CCRCE") Then	objFSO.CreateFolder("C:\CCRCE")
 If Not objFSO.FolderExists("C:\CCRCE\Logs") Then
 	objFSO.CreateFolder("C:\CCRCE\Logs")
 	MakeFolderHidden("C:\CCRCE\Logs")
@@ -58,18 +56,7 @@ Else
 	Computername = Shell.ExpandEnvironmentStrings( "%COMPUTERNAME%" )
 	set oEnv = shell.Environment("PROCESS")
 	oEnv("SEE_MASK_NOZONECHECKS") = 1
-	If FSO.FolderExists("C:\CCRSB") Then
-		FSO.DeleteFolder("C:\CCRSB")
-	End If
-	If NOT FSO.FolderExists("C:\CCRCE") Then
-		FSO.CreateFolder("C:\CCRCE")
-	End If
-	If NOT FSO.FolderExists("C:\CCRCE\Logs") Then
-		FSO.CreateFolder("C:\CCRCE\Logs")
-		MakeFolderHidden("C:\CCRCE\Logs")
-	Else
-		MakeFolderHidden("C:\CCRCE\Logs")
-	End If
+	If FSO.FolderExists("C:\CCRSB") Then FSO.DeleteFolder("C:\CCRSB")
 	'--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	'Start doing stuff
 	'--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -88,44 +75,46 @@ Else
 	SchoolDrive = "\\ad.ccrsb.ca\xadmin-" & Namesplit(0)
 	MapNetworkDriveIfNotExist "X:", SchoolDrive
 	SchoolBackupShare = AbbreviationIPsBackupShares(Namesplit(0))
-	If FSO.FileExists(SchoolBackupShare) Then
-		Shell.run SchoolBackupShare, 2, False
-	End If
+	If FSO.FileExists(SchoolBackupShare) Then Shell.run SchoolBackupShare, 2, False
 	HomeDrive = "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername()
 	MapNetworkDriveIfNotExist "H:", HomeDrive
 
-	'# Check for rename =====================================================================================================================
-	'RenameINI = "H:\Scripts\Rename.ini"
-	'NewName = ReadIni(RenameINI, Computername, "Name")
-	'If NewName <> "" Then
-	'	Shell.Run("powershell.exe -noexit -Command " & Quotes(NewName)),, True
-	'End If
 	'# Insight =====================================================================================================================
-	If NOT FSO.FileExists("C:\CCRCE\Logs\Insight-1") Then
-		Shell.run HomeDrive & "\Software\Insight-AD\run.vbs",2, True
-		Set objFile = FSO.CreateTextFile("C:\CCRCE\Logs\Insight-1")
-		Set objFile = FSO.CreateTextFile("C:\CCRCE\Logs\Insight-1-" & ComputerName)
+	If FSO.FileExists(HomeDrive & "\Software\Insight-AD\run.vbs") Then
+		If NOT FSO.FileExists("C:\CCRCE\Logs\Insight-1") Then
+			Shell.run HomeDrive & "\Software\Insight-AD\run.vbs",2, True
+			Set objFile = FSO.CreateTextFile("C:\CCRCE\Logs\Insight-1")
+			Set objFile = FSO.CreateTextFile("C:\CCRCE\Logs\Insight-1-" & ComputerName)
+		End If
+		If NOT FSO.FileExists("C:\CCRCE\Logs\Insight-1-" & ComputerName) Then
+			InsightChannel
+			Set objFile = FSO.CreateTextFile("C:\CCRCE\Logs\Insight-1-" & ComputerName)
+		End If
+		If SysLaptop = True Then Shell.RegWrite "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Insight\ConnectionServerAddress", Namesplit(0) & "-WIN-IT-01.ad.ccrsb.ca:8080", "REG_SZ"
+		Shell.RegWrite "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Insight\School", Namesplit(0), "REG_SZ"
+	Else
+		LogMessage "Skipping this doesn't exist: " & HomeDrive & "\Software\Insight-AD\run.vbs"
 	End If
-	If NOT FSO.FileExists("C:\CCRCE\Logs\Insight-1-" & ComputerName) Then
-		InsightChannel
-		Set objFile = FSO.CreateTextFile("C:\CCRCE\Logs\Insight-1-" & ComputerName)
-	End If
-	If SysLaptop = True Then Shell.RegWrite "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Insight\ConnectionServerAddress", Namesplit(0) & "-WIN-IT-01.ad.ccrsb.ca:8080", "REG_SZ"
-	Shell.RegWrite "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Insight\School", Namesplit(0), "REG_SZ"
-	
 	'# Insight V11=====================================================================================================================
-	Dim productCode, versionToCheck, result
-	productCode = "{2BFB1EFC-E73E-4723-BC83-029DCB62E593}"
-	versionToCheck = "11.40.2100.412"
-	result = CheckMSIProductVersion(productCode, versionToCheck)
-	If result = "Not Found" Then
-		shell.Run("powershell.exe -ExecutionPolicy Bypass -File " & Quotes(HomeDrive & "\Software\Insight\Insight.ps1")), 0, True
+	If FSO.FileExists(HomeDrive & "\Software\Insight\Insight.ps1") Then
+		Dim productCode, versionToCheck, result
+		productCode = "{2BFB1EFC-E73E-4723-BC83-029DCB62E593}"
+		versionToCheck = "11.40.2100.412"
+		result = CheckMSIProductVersion(productCode, versionToCheck)
+		If result = "Not Found" Then shell.Run("powershell.exe -ExecutionPolicy Bypass -File " & Quotes(HomeDrive & "\Software\Insight\Insight.ps1")), 0, True
+	Else
+		LogMessage "Skipping this doesn't exist: " & HomeDrive & "\Software\Insight\Insight.ps1"
 	End If
-	'# Battery Check =====================================================================================================================		
-	INIPath = SchoolDrive & "\Audit\Custom\"
+	'# Battery Check =====================================================================================================================	
+	If Not FSO.FolderExists(SchoolDrive & "\Audit\batteryreport") Then FSO.CreateFolder(SchoolDrive & "\Audit\batteryreport")
+	INIPath = SchoolDrive & "\Audit\batteryreport\"
 	Shell.Run "cmd /c echo n | powercfg /batteryreport /output " & INIPath & Computername &"-battery-report.html",0, False
 	'# Cleanup drive =====================================================================================================================	
-	shell.Run("powershell.exe -ExecutionPolicy Bypass -File " & Quotes(HomeDrive & "\Scripts\DeleteStudentUserAccounts.ps1") & " -DaysBeforeDeletion 30"), 0, True
+	If FSO.FileExists(HomeDrive & "\Scripts\DeleteStudentUserAccounts.ps1") Then
+		shell.Run("powershell.exe -ExecutionPolicy Bypass -File " & Quotes(HomeDrive & "\Scripts\DeleteStudentUserAccounts.ps1") & " -DaysBeforeDeletion 30"), 0, True
+	Else
+		LogMessage "Skipping this doesn't exist: " & HomeDrive & "\Scripts\DeleteStudentUserAccounts.ps1"
+	End If
 	'Clear SCCM Cache
 	Dim oUIResManager, oCache, oCacheElements, oCacheElement
 	set oUIResManager = createobject("UIResource.UIResourceMgr")
@@ -135,10 +124,7 @@ Else
 		oCache.DeleteCacheElement(oCacheElement.CacheElementID)
 	next
 	'# Random Software installs =====================================================================================================================		
-	'Shell.run "msiexec /i " & Quotes("X:\SOFTWARE\MatchGraph!-2.2.0.2.msi") & " /q", 2, TRUE
-	If Namesplit(1) = "CART01" Then
-		Shell.run SchoolDrive & "\SOFTWARE\Vcarve\Install.bat", 2, TRUE
-	End if
+	If Namesplit(1) = "CART01" Then Shell.run SchoolDrive & "\SOFTWARE\Vcarve\Install.bat", 2, TRUE
 	'# Check for needing update
 	strReleaseID = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DisplayVersion"
 	If Shell.RegRead(strReleaseID) <> "22H2" Then
@@ -154,34 +140,27 @@ Else
 			End If
 		End If
 	End If
-
 	'# Adobe Creative Cloud =====================================================================================================================		
-	NRHS2079 = Left(UCase(ComputerName),9)
-	AdobeInstall = "No"
-	If NRHS2079 = "NRHS-2079" Then
-		AdobeInstall = "Yes"
-	End If
-	If InStr(ComputerName,"VS") <> 0 Then
-		AdobeInstall = "Yes"
-	End If
-	If ComputerName = "NRHS-TCH-LT49" Then
-		AdobeInstall = "Yes"
-	End If	
-	If ComputerName = "NRHS-TCH-LT46" Then
-		AdobeInstall = "Yes"
-	End If	
-	If ComputerName = "NRHS-TCH-LT09" Then
-		AdobeInstall = "Yes"
-	End If	
-	IF AdobeInstall = "Yes" Then
-		If NOT FSO.FolderExists("C:\Program Files\Adobe\Adobe Creative Cloud") Then
-			'Install Adobe Creative Cloud
-			Shell.run SchoolDrive & "\SOFTWARE\CCRCEHSTechED\Build\setup.exe", 2, TRUE
+	If FSO.FileExists(SchoolDrive & "\SOFTWARE\CCRCEHSTechED\Build\setup.exe") Then
+		NRHS2079 = Left(UCase(ComputerName),9)
+		AdobeInstall = "No"
+		If NRHS2079 = "NRHS-2079" Then AdobeInstall = "Yes"
+		If InStr(ComputerName,"VS") <> 0 Then AdobeInstall = "Yes"
+		If ComputerName = "NRHS-TCH-LT49" Then AdobeInstall = "Yes"
+		If ComputerName = "NRHS-TCH-LT46" Then AdobeInstall = "Yes"
+		If ComputerName = "NRHS-TCH-LT09" Then AdobeInstall = "Yes"
+		IF AdobeInstall = "Yes" Then
+			If NOT FSO.FolderExists("C:\Program Files\Adobe\Adobe Creative Cloud") Then
+				'Install Adobe Creative Cloud
+				Shell.run SchoolDrive & "\SOFTWARE\CCRCEHSTechED\Build\setup.exe", 2, TRUE
+				'Disable autostart
+				Shell.Regwrite "HKLM\Software\Policies\Adobe\CCXWelcome\Disabled", 0,"REG_DWORD"
+			End If
 			'Disable autostart
 			Shell.Regwrite "HKLM\Software\Policies\Adobe\CCXWelcome\Disabled", 0,"REG_DWORD"
 		End If
-		'Disable autostart
-		Shell.Regwrite "HKLM\Software\Policies\Adobe\CCXWelcome\Disabled", 0,"REG_DWORD"
+	Else
+		LogMessage "Skipping this doesn't exist: " & SchoolDrive & "\SOFTWARE\CCRCEHSTechED\Build\setup.exe"
 	End If
 	'# Update AD stuff =====================================================================================================================
 	FixTrustRelationship()
@@ -200,7 +179,7 @@ Else
 	shell.Run("schtasks /run /tn """ & taskname & """"),0,true
 	'# Drivers =====================================================================================================================
 	'Check drivers
-	Shell.run "devmgmt.msc", 2, False
+	Shell.run HomeDrive & "\Login\devmgmt.vbs", 2, False
 	For i = 1 To 3
 		DriversPath = "C:\CCRCE\Logs\Drivers-" & i
 		If FSO.FileExists(DriversPath) Then FSO.DeleteFile(DriversPath)
@@ -236,14 +215,10 @@ Else
 		PrintersPath = "C:\CCRCE\Logs\Printers-" & i
 		If FSO.FileExists(PrintersPath) Then FSO.DeleteFile(PrintersPath)
 	Next
-	If NOT FSO.FileExists("C:\CCRCE\Logs\Printers-4") Then
-		Shell.run HomeDrive & "\Login\Printer-Setup\Printer-Setup.vbs", 0, TRUE
-	End If
+	If NOT FSO.FileExists("C:\CCRCE\Logs\Printers-4") Then Shell.run HomeDrive & "\Login\Printer-Setup\Printer-Setup.vbs", 0, TRUE
 	'# Complete =====================================================================================================================
 	RestartSelect = shell.Popup ("Settings update complete. Do you want to restart the computer?",,"Information",36)
-	If RestartSelect <> 7 Then
-		Restart
-	End If
+	If RestartSelect <> 7 Then Restart
 	oEnv.Remove("SEE_MASK_NOZONECHECKS")
 	' Error handling section (after the main code)
 	If Err.Number <> 0 Then
@@ -330,9 +305,7 @@ Function ObtainSysInfo()
     Set colChassis = objWMIService.ExecQuery("SELECT * FROM Win32_SystemEnclosure")
     For Each objChassis in colChassis
         For Each strChassisType in objChassis.ChassisTypes
-            If strChassisType > 7 And strChassisType < 15 And strChassisType <> 13 Then
-                SysLaptop = "Yes"
-            End If
+            If strChassisType > 7 And strChassisType < 15 And strChassisType <> 13 Then SysLaptop = "Yes"
         Next
     Next
 End Function
@@ -405,9 +378,7 @@ Function InsightChannel()
 	End If
 	'Setting the channel
 	Shell.Regwrite "HKLM\Software\Insight\Channel", Channel, "REG_DWORD"
-	If OSArch = "64-bit" Then
-		Shell.Regwrite "HKLM\Software\Wow6432Node\Insight\Channel", Channel, "REG_DWORD"
-	End If
+	If OSArch = "64-bit" Then Shell.Regwrite "HKLM\Software\Wow6432Node\Insight\Channel", Channel, "REG_DWORD"
 	LogMessage("Insight Channel: " & Channel)
 End Function
 
@@ -452,9 +423,7 @@ Function FixTrustRelationship()
 	strComputer = objNetwork.ComputerName
 	Set objComputer = GetObject("winmgmts:{impersonationLevel=Impersonate}!\\" & strComputer & "\root\cimv2:Win32_ComputerSystem.Name='" & strComputer & "'")
 	ReturnValue = objComputer.JoinDomainOrWorkGroup(strDomain, Null, strDomain & "\x-" & strUser, Null, JOIN_DOMAIN + ACCT_DELETE + ACCT_CREATE + DOMAIN_JOIN_IF_JOINED)
-	If Err <> 0 Then
-		objShell.Popup "Join failed with error: " & ReturnValue, 1, "Information", 64
-	End If
+	If Err <> 0 Then objShell.Popup "Join failed with error: " & ReturnValue, 1, "Information", 64
 	Select Case ReturnValue
 		Case 5
 			WScript.Echo "Access was Denied for adding the Computer to the Domain"
@@ -520,9 +489,7 @@ End If
 Sub LogMessage(message)
     ' Subroutine to log messages to the log file
 	On Error Resume Next
-    If Not objLogFile Is Nothing Then
-        objLogFile.WriteLine Now & " - " & message
-    End If
+    If Not objLogFile Is Nothing Then objLogFile.WriteLine Now & " - " & message
     On Error GoTo 0
 End Sub
 

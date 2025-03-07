@@ -23,9 +23,7 @@ Set FSO = CreateObject("Scripting.FileSystemObject")
 Set oEnv = Shell.Environment("PROCESS")
 oEnv("SEE_MASK_NOZONECHECKS") = 1
 ErrCheck
-If FSO.FileExists(LogsFolderPath & "\log.txt") Then
-    FSO.DeleteFile(LogsFolderPath & "\log.txt")
-End If
+If FSO.FileExists(LogsFolderPath & "\login.txt") Then FSO.DeleteFile(LogsFolderPath & "\login.txt")
 ' Drive Mapping
 Computername = Shell.ExpandEnvironmentStrings("%COMPUTERNAME%")
 dim Namesplit
@@ -35,23 +33,15 @@ MapNetworkDriveIfNotExist "X:", SchoolDrive
 ErrCheck
 
 'Create folders
-If FSO.FolderExists("C:\CCRSB") Then
-    FSO.DeleteFolder("C:\CCRSB")
-End If
-If Not FSO.FolderExists("C:\CCRCE") Then
-    FSO.CreateFolder("C:\CCRCE")
-End If
+If FSO.FolderExists("C:\CCRSB") Then FSO.DeleteFolder("C:\CCRSB")
+If Not FSO.FolderExists("C:\CCRCE") Then FSO.CreateFolder("C:\CCRCE")
+If Not FSO.FolderExists(SchoolDrive & "\Audit") Then FSO.CreateFolder(SchoolDrive & "\Audit")
+If Not FSO.FolderExists(SchoolDrive & "\Audit\Databases") Then FSO.CreateFolder(SchoolDrive & "\Audit\Databases")
 If Not FSO.FolderExists(LogsFolderPath) Then
     FSO.CreateFolder(LogsFolderPath)
 	MakeFolderHidden(LogsFolderPath)
 Else
 	MakeFolderHidden(LogsFolderPath)
-End If
-If Not FSO.FolderExists(SchoolDrive & "\Audit") Then
-    FSO.CreateFolder(SchoolDrive & "\Audit")
-End If
-If Not FSO.FolderExists(SchoolDrive & "\Audit\Custom") Then
-    FSO.CreateFolder(SchoolDrive & "\Audit\Custom")
 End If
 If Not FSO.FolderExists("C:\CCRCE\Printers") Then
     FSO.CreateFolder("C:\CCRCE\Printers")
@@ -74,9 +64,7 @@ Else
     extractedFolderPath = FSO.GetParentFolderName(WScript.ScriptFullName) & "\Login"
     LogMessage "Extracted folder path: " & extractedFolderPath
     ' Create temp folder if it doesn't exist
-    If Not FSO.FolderExists(tempFolderPath) Then
-        FSO.CreateFolder(tempFolderPath)
-    End If
+    If Not FSO.FolderExists(tempFolderPath) Then FSO.CreateFolder(tempFolderPath)
     Shell.Run "powershell -command ""Invoke-WebRequest -Uri " & Quotes(gitHubDownloadPath) & " -OutFile " & Quotes(tempFolderPath & "\Login.zip") & """", 1, True
     If FSO.FileExists(tempFolderPath & "\Login.zip") Then
         Shell.Run "powershell -command ""Expand-Archive -Path " & Quotes(tempFolderPath & "\Login.zip") & " -DestinationPath " & Quotes(tempFolderPath) & """", 1, True
@@ -89,6 +77,7 @@ Else
                     objFile.Delete True
                 Next
             End If
+            If Not FSO.FolderExists("C:\CCRCE\LoginPython-main\Audit\Databases") Then FSO.CreateFolder("C:\CCRCE\LoginPython-main\Audit\Databases")
             FSO.CopyFolder tempFolderPath & "\LoginPython-main", extractedFolderPath
             FSO.DeleteFolder tempFolderPath & "\LoginPython-main"
             LogMessage tempFolderPath & "\LoginPython-main " & extractedFolderPath
@@ -104,9 +93,7 @@ Else
 End If
 
 strReleaseID = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DisplayVersion"
-If Shell.RegRead(strReleaseID) <> "22H2" Then
-    Shell.Run Quotes("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Endpoint Manager\Configuration Manager\Software Center.lnk"), 2, False
-End If
+If Shell.RegRead(strReleaseID) <> "22H2" Then Shell.Run Quotes("C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Endpoint Manager\Configuration Manager\Software Center.lnk"), 2, False
 
 Dim taskname
 taskname = "OpenAudit-Startup"
@@ -114,9 +101,7 @@ Shell.Run ("schtasks /run /tn """ & taskname & """"), 2, True
 ErrCheck
 
 ' Prep Printers
-If FSO.FolderExists("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Printer-Setup") Then
-    XcopyFiles "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Printer-Setup", "C:\CCRCE\Printers"
-End If
+If FSO.FolderExists("\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Printer-Setup") Then XcopyFiles "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Printer-Setup", "C:\CCRCE\Printers"
 
 Shell.Run "cmd /c echo n | gpupdate /force", 0, False
 
@@ -127,7 +112,7 @@ If Ucase(Namesplit(1)) = "Y24" Then
 Else
 	Dim tasksVbsPath
 	tasksVbsPath = "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & "\Login\Initial-Setup-Tasks\Tasks.vbs"
-	If FSO.FileExists(tasksVbsPath) Then
+	If NOT FSO.FileExists("C:\CCRCE\Logs\Tasks.log") Then
 		Shell.Run "runas /user:CCRSB\x-" & GetCurrentUsername() & " ""wscript.exe " & tasksVbsPath & """", 2, False
 	End If
 End if
@@ -154,7 +139,6 @@ Sub XcopyFiles(strSource, strDestination)
     Set objFSO = CreateObject("Scripting.FileSystemObject")
     Set objSourceFolder = objFSO.GetFolder(strSource)
     Set objDestinationFolder = objFSO.GetFolder(strDestination)
-
     For Each objFile In objDestinationFolder.Files
         If Not objFSO.FileExists(objSourceFolder.Path & "\" & objFile.Name) Then
             objFile.Delete
@@ -233,7 +217,7 @@ End Sub
 Sub LogMessage(strMessage)
     ' Logs a message with the current timestamp to the log file
     Dim objLogFile, logFilePath
-    logFilePath = LogsFolderPath & "\log.txt"
+    logFilePath = LogsFolderPath & "\login.txt"
     Set objLogFile = FSO.OpenTextFile(logFilePath, ForAppending, True)
     objLogFile.WriteLine Now & " - " & strMessage
     objLogFile.Close

@@ -1,71 +1,64 @@
 On Error Resume Next
 '--------------
-If WScript.Arguments.length =0 Then
+If WScript.Arguments.length = 0 Then
 	Set objShell = CreateObject("Shell.Application")
-	objShell.ShellExecute "wscript.exe", Chr(34) & WScript.ScriptFullName & Chr(34) & " uac", "", "runas", 1
+	Dim scriptPath
+	scriptPath = WScript.ScriptFullName
+	If Left(scriptPath, 2) = "H:" Then
+		scriptPath = "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername() & Mid(scriptPath, 3)
+	End If
+	objShell.ShellExecute "wscript.exe", Chr(34) & scriptPath & Chr(34) & " uac", "", "runas", 1
+	While Not WScript.Arguments(0) = "uac"
+		WScript.Sleep 100
+	Wend
 Else
-	dim IP
 	Set Shell = CreateObject ("WSCript.shell" )
-	ObtainIP()
-	arrIP = split(IP,".")
-	Select Case arrIP(1)
-		Case 123
-			SchoolDrive="\\ad.ccrsb.ca\xadmin-wdc"
-		Case 55
-			SchoolDrive="\\ad.ccrsb.ca\xadmin-nrhs"
-		Case 46
-			SchoolDrive="\\ad.ccrsb.ca\xadmin-agb"
-	End Select	
-	SchoolDrive="\\ad.ccrsb.ca\xadmin-nrhs"
-	DriveMap "X:", SchoolDrive
+	Set objShell = CreateObject ("WSCript.shell" )
+	Set FSO = CreateObject("Scripting.FileSystemObject")
+	Computername = objShell.ExpandEnvironmentStrings("%COMPUTERNAME%")
+	Namesplit = Split(ComputerName, "-")
+	SchoolDrive = "\\ad.ccrsb.ca\xadmin-" & Namesplit(0)
+	BackupXadmin = "\\ad.ccrsb.ca\xadmin-NRHS"
+	MapNetworkDriveIfNotExist "X:", SchoolDrive
+	MapNetworkDriveIfNotExist "H:", "\\ad.ccrsb.ca\it-home\IT-SCHOOL-HOME\" & GetCurrentUsername()
 	Shell.run "devmgmt.msc", 2, False
-	
-	Function ObtainIP()
-		set objNetwork = CreateObject("WScript.Network")
-		strComputer = objNetwork.ComputerName
-		set objExec = Shell.Exec("%comspec% /c ping.exe " & strComputer & " -n 1 -w 100 -4")
-		do until objExec.Stdout.AtEndOfStream
-			strLine = objExec.StdOut.ReadLine
-			if (inStr(strLine, "Reply")) then
-				strIP = mid(strLine, 11, inStr(strLine, ":") - 11)
-				exit do
-			end if
-		loop
-		IP = strIP
-	End Function
-	
-	Function DriveMap(Drive, Path)
-		' Map a network drive 
-		Dim objNetwork, objDrives, objReg, i
-		Dim strLocalDrive, strRemoteShare, strShareConnected, strMessage
-		Dim bolFoundExisting, bolFoundRemembered
-		Const HKCU = &H80000001
-		strLocalDrive = Drive
-		strRemoteShare = Path
-		bolFoundExisting = False
-		Set objNetwork = WScript.CreateObject("WScript.Network")
-		' Loop through the network drive connections and disconnect any that match strLocalDrive
-		Set objDrives = objNetwork.EnumNetworkDrives
-		If objDrives.Count > 0 Then
-		  For i = 0 To objDrives.Count-1 Step 2
-			If objDrives.Item(i) = strLocalDrive Then
-			  strShareConnected = objDrives.Item(i+1)
-			  objNetwork.RemoveNetworkDrive strLocalDrive, True, True
-			  i=objDrives.Count-1
-			  bolFoundExisting = True
-			End If
-		  Next
-		End If
-		' If there's a remembered location (persistent mapping) delete the associated HKCU registry key
-		If bolFoundExisting <> True Then
-		  Set objReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
-		  objReg.GetStringValue HKCU, "Network\" & Left(strLocalDrive, 1), "RemotePath", strShareConnected
-		  If strShareConnected <> "" Then
-			objReg.DeleteKey HKCU, "Network\" & Left(strLocalDrive, 1)
-			bolFoundRemembered = True
-		  End If
-		End If
-		'Now actually do the drive map
-		objNetwork.MapNetworkDrive strLocalDrive, strRemoteShare, False
-	End Function
 End If
+
+Sub DriveMap(Drive, Path)
+	' Maps a network drive with the given drive letter and network path
+	Dim objNetwork, objDrives, objReg, i
+	Dim strLocalDrive, strRemoteShare, strShareConnected
+	Const HKCU = &H80000001
+	strLocalDrive = Drive
+	strRemoteShare = Path
+	Set objNetwork = WScript.CreateObject("WScript.Network")
+	' Disconnect existing drive mapping if any
+	Set objDrives = objNetwork.EnumNetworkDrives
+	If objDrives.Count > 0 Then
+		For i = 0 To objDrives.Count - 1 Step 2
+			If objDrives.Item(i) = strLocalDrive Then
+				objNetwork.RemoveNetworkDrive strLocalDrive, True, True
+				Exit For
+			End If
+		Next
+	End If
+	' Map the network drive
+	objNetwork.MapNetworkDrive strLocalDrive, strRemoteShare, False
+End Sub
+
+Sub MapNetworkDriveIfNotExist(Drive, Path)
+	' Maps a network drive with the given drive letter and network path if it doesn't exist
+	If Not FSO.FolderExists(Drive) Then
+		If FSO.FolderExists(Path) Then
+			DriveMap Drive, Path
+		Else
+			DriveMap Drive, BackupXadmin
+		End If
+	End If
+End Sub
+
+Function GetCurrentUsername()
+	Dim objNetwork
+	Set objNetwork = CreateObject("WScript.Network")
+	GetCurrentUsername = objNetwork.UserName
+End Function
