@@ -90,10 +90,14 @@ class AppGUI:
             # Extract the zip file with progress
             self.extract_zip_with_progress(dest_path)
             
-            # Copy the extracted folder to the script location
+            # Delete the ZIP file after extraction
+            if os.path.exists(dest_path):
+                os.remove(dest_path)
+            
+            # Copy the extracted folder to the script location with progress
             extracted_folder = os.path.join(extract_to, "LoginPython-main")
             if os.path.exists(extracted_folder):
-                shutil.copytree(extracted_folder, script_location, dirs_exist_ok=True)
+                self.copy_folder_with_progress(extracted_folder, os.path.join(script_location, "Login"))
                 shutil.rmtree(extracted_folder)  # Clean up the extracted folder
 
             messagebox.showinfo("Success", "Download, extraction, and copy completed successfully.")
@@ -118,6 +122,23 @@ class AppGUI:
         else:
             self.progress['value'] = 0  # Set progress to 0 if total is invalid
             self.master.update_idletasks()
+
+    def copy_folder_with_progress(self, src, dest):
+        total_files = sum([len(files) for _, _, files in os.walk(src)])
+        copied_files = 0
+
+        os.makedirs(dest, exist_ok=True)
+        for root, dirs, files in os.walk(src):
+            relative_path = os.path.relpath(root, src)
+            dest_dir = os.path.join(dest, relative_path)
+            os.makedirs(dest_dir, exist_ok=True)
+
+            for file in files:
+                src_file = os.path.join(root, file)
+                dest_file = os.path.join(dest_dir, file)
+                shutil.copy2(src_file, dest_file)
+                copied_files += 1
+                self.update_progress(copied_files, total_files)
 
 if __name__ == "__main__":
     root = Tk()
